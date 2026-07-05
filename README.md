@@ -1,51 +1,81 @@
-# Turbo Rift Racers — Ultimate 5-File Build
+# Turbo Rift Racers — 5 File Build
 
-This is the compact Render-ready build with only five project files. CSS and game JavaScript are embedded inside `index.html` so uploads from a phone stay simple while the server still supports Socket.IO multiplayer.
+This is a Render-ready 5-file build of **Turbo Rift Racers**.
 
-## File tree
+## Files
 
-```text
-turbo-rift-racers-ultimate-5/
-├─ index.html
-├─ server.js
-├─ package.json
-├─ render.yaml
-└─ README.md
-```
+- `index.html` — complete game UI, canvas racer, garage, shop, settings, lobby, and multiplayer client
+- `server.js` — Express + Socket.IO multiplayer server
+- `package.json` — dependencies and start script
+- `render.yaml` — Render deployment helper
+- `README.md` — setup guide
 
-## Render deployment
-
-- Build Command: `npm install`
-- Start Command: `npm start`
-- Health Check Path: `/health`
-
-## Local testing
+## Local Run
 
 ```bash
 npm install
 npm start
 ```
 
-Open `http://localhost:3000`.
+Open:
 
-## Offline testing
+```text
+http://localhost:3000
+```
 
-Open `index.html` directly in a browser. Offline racing, AI, garage, shop, saves, controls, and procedural tracks still work. Online lobbies require the Node server.
+## Offline Mode
 
-## What is included
+You can also open `index.html` directly in a browser for offline single-player mode.
 
-- Big seeded pseudo-3D circuits, not tiny circle tracks.
-- Five themes: Neon City, Jungle Drift, Desert Canyon, Arctic Loop, and Sky Bridge.
-- Jumps, tunnel portals, loop sections, boost pads, hazards, checkpoints, wrenches, scenery, mini-map, and results.
-- Mobile-first forward-driving joystick and circular boost button.
-- Desktop WASD/arrow keys and Space boost.
-- Garage, shop, upgrades, wrench economy, and localStorage save system.
-- Express + Socket.IO same-origin multiplayer with create/join lobby, host settings, map vote, ready flow, AI fill, and result voting.
+## Render Deployment
 
-## Multiplayer summary
+- **Build Command:** `npm install`
+- **Start Command:** `npm start`
+- **Health Check Path:** `/health`
 
-The server owns lobby codes, host assignment, player membership, ready/map selections, race-start timing, and compact state relay. Clients render smoothly and keep offline mode available if the socket is unavailable.
+## Multiplayer Flow
 
-## Tuning notes
+1. Open **Online Multiplayer**.
+2. Create or join a lobby.
+3. Each player picks a preferred map and vehicle.
+4. Players press **Ready Up**.
+5. The host presses **Start Map Vote**.
+6. The wheel spins, then the chosen map starts.
 
-Edit the embedded `TRACKS` array in `index.html` to add map seeds, paths, tunnels, jumps, loops, boost pads, hazards, and props. Edit `VEHICLES` to add cars or tune acceleration, top speed, handling, boost, durability, tier, and price.
+Map choice alone does **not** start the race.
+
+## Controls
+
+### Mobile
+- Joystick up = accelerate forward
+- Joystick down = brake / reverse feel
+- Joystick left / right = steer
+- Big glowing boost button = boost
+
+### Desktop
+- `WASD` or Arrow Keys = drive
+- `Space` = boost
+- `Escape` = pause
+
+## Garage / Shop Save System
+
+The game uses `localStorage` to save:
+- player name
+- wrench balance
+- unlocked cars
+- upgrade levels
+- equipped trail
+- settings
+- best lap times
+
+## Adding More Tracks Later
+
+Inside `index.html`, add another entry to the `TRACKS` object and another pattern in `trackPattern()`.
+
+## Adding More Vehicles Later
+
+Add another vehicle to the `VEHICLES` array in `index.html`.
+
+## Health Route
+
+`/health` returns JSON so Render can verify the service is alive.
