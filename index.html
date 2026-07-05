@@ -83,10 +83,10 @@
     .announcer{position:fixed;left:50%;top:18%;transform:translateX(-50%);font-size:clamp(24px,5vw,56px);font-weight:1000;text-shadow:0 0 22px rgba(80,221,255,.75);pointer-events:none;text-align:center;max-width:90vw}
     .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:12px 16px;border-radius:18px;opacity:0;transition:.2s;z-index:40;pointer-events:none}
     .toast.show{opacity:1}
-    .hint{position:fixed;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:10px 14px;border-radius:18px;z-index:20;display:none;max-width:min(90vw,520px);font-size:13px;line-height:1.35;text-align:center}
+    .hint{position:fixed;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:10px 14px;border-radius:18px;z-index:20;display:none;max-width:min(90vw,520px);font-size:13px;line-height:1.35;text-align:center;pointer-events:auto}
     .hint.show{display:block}
-    .hint .closex{margin-left:10px;border:0;background:transparent;color:#fff;font-weight:900;cursor:pointer}
-    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.56);display:none;align-items:center;justify-content:center;z-index:80;padding:12px}
+    .hint .closex{margin-left:10px;border:0;background:transparent;color:#fff;font-weight:900;cursor:pointer;font-size:24px;line-height:1;padding:2px 6px}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.56);display:none;align-items:center;justify-content:center;z-index:80;padding:12px;pointer-events:auto}
     .overlay.active{display:flex}
     .small-panel{border-radius:24px;padding:18px;width:min(560px,100%)}
     #voteWheel{width:min(82vw,340px);height:min(82vw,340px);display:block;margin:0 auto 12px;background:rgba(255,255,255,.02);border-radius:50%}
@@ -557,7 +557,7 @@
     function renderTrackFacts(id){ $('trackFacts').innerHTML = trackById(id).facts.map(f => `<span class="pill">${f}</span>`).join(''); }
 
     // ---------------- PSEUDO 3D TRACK ----------------
-    const road = { width: 2000, segmentLength: 180, drawDistance: 220, rumbleLength: 3, lanes: 3, cameraHeight: 1000, cameraDepth: 1 / Math.tan((100/2) * Math.PI / 180) };
+    const road = { width: 2800, segmentLength: 220, drawDistance: 240, rumbleLength: 3, lanes: 3, cameraHeight: 1000, cameraDepth: 1 / Math.tan((100/2) * Math.PI / 180) };
     function easeIn(a,b,p){ return a + (b-a)*Math.pow(p,2); }
     function easeOut(a,b,p){ return a + (b-a)*(1-Math.pow(1-p,2)); }
     function easeInOut(a,b,p){ return a + (b-a)*((-Math.cos(p*Math.PI)/2) + .5); }
@@ -568,11 +568,11 @@
 
     function trackPattern(id){
       const base = {
-        neon:[['straight',25,0,0],['curve',25,1.2,0],['hill',18,0,700],['straight',16,0,0],['tunnel',20,0,-250],['curve',30,-1.3,0],['jump',12,0,550],['straight',20,0,0],['loop',16,0,0],['curve',28,1.1,-280],['straight',20,0,0]],
-        jungle:[['straight',22,0,0],['curve',30,-1.1,200],['hill',24,0,900],['mud',15,0,0],['bridge',20,.7,-180],['curve',24,1.4,0],['jump',10,0,400],['straight',24,0,0],['tunnel',18,0,200],['curve',30,-1.4,-220]],
-        desert:[['straight',28,0,0],['curve',25,.9,100],['jump',14,0,650],['straight',20,0,0],['tunnel',22,0,-250],['curve',34,-1.3,0],['hill',18,0,500],['straight',22,0,0],['jump',12,0,420],['curve',28,1.3,-200]],
-        arctic:[['straight',24,0,0],['hill',18,0,650],['curve',26,1.2,0],['ice',18,0,0],['straight',20,0,0],['loop',18,0,0],['curve',28,-1.1,-250],['tunnel',20,0,200],['jump',12,0,350],['straight',24,0,0]],
-        sky:[['straight',22,0,0],['curve',18,0.9,0],['jump',12,0,720],['bridge',24,0,-240],['curve',30,-1.0,0],['straight',16,0,0],['tunnel',18,0,0],['jump',12,0,580],['curve',26,1.2,300],['loop',14,0,0],['straight',22,0,0]]
+        neon:[['straight',42,0,0],['curve',34,1.05,0],['hill',26,0,760],['straight',26,0,0],['tunnel',28,0,-260],['curve',34,-1.15,0],['jump',18,0,620],['straight',30,0,0],['loop',26,0,0],['straight',20,0,0],['curve',32,0.9,-220],['jump',14,0,380],['straight',34,0,0]],
+        jungle:[['straight',36,0,0],['curve',30,-0.95,220],['hill',28,0,980],['mud',18,0,0],['bridge',24,0.6,-200],['straight',22,0,0],['curve',32,1.1,0],['jump',14,0,430],['straight',32,0,0],['tunnel',22,0,220],['curve',30,-1.15,-240],['straight',28,0,0]],
+        desert:[['straight',40,0,0],['curve',28,0.85,120],['jump',18,0,680],['straight',28,0,0],['tunnel',26,0,-250],['curve',36,-1.08,0],['hill',22,0,560],['straight',32,0,0],['jump',16,0,450],['curve',30,1.1,-220],['straight',28,0,0]],
+        arctic:[['straight',36,0,0],['hill',24,0,700],['curve',30,1.0,0],['ice',20,0,0],['straight',24,0,0],['loop',28,0,0],['curve',30,-0.95,-230],['tunnel',22,0,200],['jump',14,0,380],['straight',30,0,0],['ice',18,0,0],['straight',24,0,0]],
+        sky:[['straight',34,0,0],['curve',22,0.8,0],['jump',16,0,760],['bridge',30,0,-260],['curve',32,-0.9,0],['straight',24,0,0],['tunnel',20,0,0],['jump',16,0,620],['curve',30,1.0,320],['loop',22,0,0],['straight',34,0,0],['jump',14,0,440]]
       };
       return base[id] || base.neon;
     }
@@ -614,7 +614,7 @@
         addRoad(enter, hold, leave, curve * 1.15, hill || 0, kind);
       });
       // closing stretch
-      addRoad(12, 30, 12, 0, -lastY, 'finish');
+      addRoad(16, 46, 16, 0, -lastY, 'finish');
       // enrich with props and interactives
       for (let i=20;i<segs.length-30;i++) {
         const s = segs[i];
@@ -623,8 +623,10 @@
         const rightType = track.theme === 'city' ? 'sign' : track.theme === 'jungle' ? 'rock' : track.theme === 'desert' ? 'rock' : track.theme === 'snow' ? 'penguin' : 'airship';
         if (rand > 0.2) s.sprites.push({offset:-2.2, type:leftType, size:1 + rand * 0.6});
         if (rand < 0.85) s.sprites.push({offset:2.2, type:rightType, size:0.9 + rand * 0.5});
-        if (i % 37 === 0) s.wrench = {offset: (randomFromSeed(seed+i) * 1.8) - 0.9, taken:false};
-        if (i % 61 === 0) s.boost = true;
+        if (i % 34 === 0) s.wrench = {offset: (randomFromSeed(seed+i) * 1.8) - 0.9, taken:false};
+        if (i % 42 === 0) s.boost = true;
+        if (i % 74 === 0 && !s.jump) s.jump = true;
+        if (i % 118 === 0 && !s.loop && track.id !== 'jungle') s.loop = true;
         if (s.tag === 'tunnel') s.tunnel = true;
         if (s.tag === 'loop') s.loop = true;
         if (s.tag === 'jump') s.jump = true;
@@ -636,7 +638,7 @@
 
     function createOpponent(name, vehicleId, ai=true){
       const car = vehicleById(vehicleId);
-      return {name, vehicleId:car.id, color:car.color, x:(Math.random()*1.4)-0.7, z:0, speed:0, lap:1, finished:false, ai, boost:Math.random(), place:1};
+      return {name, vehicleId:car.id, color:car.color, x:0, z:0, speed:0, lap:1, finished:false, ai, boost:Math.random(), place:1};
     }
 
     function createRace(options){
@@ -648,14 +650,19 @@
       const remoteIds = [];
       if (options.online && state.lobby) {
         const others = state.lobby.players.filter(p => p.id !== state.myId && p.online);
-        others.forEach((p, idx) => { const op = createOpponent(p.name, p.vehicle, false); op.remoteId = p.id; op.z = (idx+1) * road.segmentLength * 26; op.speed = 4800; opponents.push(op); remoteIds.push(p.id); });
+        const packZ = [3,5,7,10,13,16];
+        const packX = [-0.55,0.55,-0.18,0.18,-0.82,0.82];
+        others.forEach((p, idx) => { const op = createOpponent(p.name, p.vehicle, false); op.remoteId = p.id; op.z = packZ[idx % packZ.length] * road.segmentLength; op.x = packX[idx % packX.length]; op.speed = 2600 + idx * 120; opponents.push(op); remoteIds.push(p.id); });
       }
       const neededAI = Math.max(0, options.ai || 0);
       for (let i=0;i<neededAI;i++) {
         const v = VEHICLES[(i+2)%VEHICLES.length];
         const op = createOpponent('AI ' + (i+1), v.id, true);
-        op.z = (i+1) * road.segmentLength * 24;
-        op.speed = 4200 + Math.random()*1200;
+        const packZ = [2,4,6,8,11,14];
+        const packX = [-0.72,-0.32,0.32,0.72,-0.12,0.12];
+        op.z = packZ[i % packZ.length] * road.segmentLength;
+        op.x = packX[i % packX.length];
+        op.speed = 2300 + Math.random()*500;
         opponents.push(op);
       }
       const race = {
@@ -694,6 +701,8 @@
       $('pauseOverlay').classList.remove('active');
       $('mapVoteOverlay').classList.remove('active');
       announce('3', 700);
+      $('rotateHint').classList.remove('show');
+      setTimeout(() => updateRotateHint(), 4000);
       updateHUD();
       if (save.settings.fullscreen) requestFull();
     }
@@ -819,6 +828,8 @@
       ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x, y+10, w*.55, h*.08, 0, 0, Math.PI*2); ctx.fill();
       drawPolygon([[x,y-h*.55],[x+w*.5,y-h*.12],[x+w*.42,y+h*.35],[x-w*.42,y+h*.35],[x-w*.5,y-h*.12]], opp.color);
       drawPolygon([[x,y-h*.28],[x+w*.2,y-h*.08],[x+w*.16,y+h*.16],[x-w*.16,y+h*.16],[x-w*.2,y-h*.08]], '#1b3f58');
+      ctx.fillStyle = '#0a1018'; ctx.fillRect(x-w*.48,y-h*.08,w*.14,h*.26); ctx.fillRect(x+w*.34,y-h*.08,w*.14,h*.26);
+      ctx.fillStyle = '#ff6b83'; ctx.fillRect(x-w*.18,y+h*.2,w*.1,h*.06); ctx.fillRect(x+w*.08,y+h*.2,w*.1,h*.06);
     }
 
     function renderRace(){
@@ -900,10 +911,10 @@
         const remain = Math.ceil((race.countdownAt - Date.now()) / 1000);
         if (remain !== race.lastCountdown) { race.lastCountdown = remain; announce(remain > 0 ? String(remain) : 'GO!', 600); }
       } else if (!race.started) { race.started = true; announce('GO!', 700); }
-      const accel = player.stats.acc * 460;
-      const top = player.stats.top * 980;
-      const handling = player.stats.hand * 0.95;
-      const boostStrength = player.stats.boost * 200;
+      const accel = player.stats.acc * 320;
+      const top = player.stats.top * 700;
+      const handling = player.stats.hand * 0.98;
+      const boostStrength = player.stats.boost * 140;
       const turnInput = clamp((((state.keys.ArrowLeft||state.keys.KeyA)?-1:0) + ((state.keys.ArrowRight||state.keys.KeyD)?1:0) + state.joy.x * save.settings.touch), -1, 1);
       const throttle = ((state.keys.ArrowUp||state.keys.KeyW)?1:0) + Math.max(0, -state.joy.y) * save.settings.touch;
       const brake = ((state.keys.ArrowDown||state.keys.KeyS)?1:0) + Math.max(0, state.joy.y) * save.settings.touch;
@@ -912,19 +923,19 @@
       else {
         player.speed += accel * throttle * dt;
         player.speed -= accel * 1.25 * brake * dt;
-        player.speed -= 210 * dt;
+        player.speed -= 250 * dt;
         const seg = race.segments[Math.floor(player.z / road.segmentLength) % race.segments.length];
-        if (Math.abs(player.x) > 1.14) player.speed -= 900 * dt;
-        if (seg.slow) player.speed -= 1200 * dt;
+        if (Math.abs(player.x) > 1.2) player.speed -= 760 * dt;
+        if (seg.slow) player.speed -= 900 * dt;
         if (seg.icy) player.speed *= (1 - 0.08*dt);
-        if (seg.boost) { player.speed += 900 * dt; player.boost = Math.min(100, player.boost + 10*dt); }
-        if (boost && player.boost > 0) { player.speed += boostStrength * dt; player.boost -= 28 * dt; }
+        if (seg.boost) { player.speed += 720 * dt; player.boost = Math.min(100, player.boost + 10*dt); }
+        if (boost && player.boost > 0) { player.speed += boostStrength * dt; player.boost -= 24 * dt; }
         else player.boost = Math.min(100, player.boost + 9 * dt);
         const steerFactor = 0.42 + clamp(player.speed / Math.max(1200, top * 780), 0, 1) * 0.92;
         player.x += turnInput * handling * steerFactor * dt * 1.9 * save.settings.keys;
         player.x = clamp(player.x, -1.62, 1.62);
-        player.speed = clamp(player.speed, 0, top * 1000 + (boost ? 500 : 0));
-        if (seg.jump && player.speed > 4200 && player.air < 4) player.air = 240;
+        player.speed = clamp(player.speed, 0, top + (boost ? 380 : 0));
+        if (seg.jump && player.speed > 2600 && player.air < 4) player.air = 240;
         if (player.air > 0) { player.air -= 580 * dt; if (player.air < 0) player.air = 0; }
         // Wrench pickup and collisions
         const segIndex = Math.floor(player.z / road.segmentLength) % race.segments.length;
@@ -935,14 +946,14 @@
         race.opponents.forEach(opp => {
           if (opp.ai) {
             const aiDiff = race.diff === 'Easy' ? 0.92 : race.diff === 'Hard' ? 1.06 : 1;
-            opp.speed += (420 + randomWobble(opp.z)) * aiDiff * dt;
-            opp.speed -= 160 * dt;
+            opp.speed += (270 + randomWobble(opp.z) * 0.45) * aiDiff * dt;
+            opp.speed -= 175 * dt;
             const os = race.segments[Math.floor(opp.z / road.segmentLength) % race.segments.length];
             opp.x += clamp((-os.curve * 0.08) + Math.sin((opp.z/400)+opp.speed)*0.002, -0.02, 0.02);
-            if (os.boost && opp.boost > 0.5) opp.speed += 500*dt;
-            if (os.jump) opp.speed += 50*dt;
+            if (os.boost && opp.boost > 0.5) opp.speed += 360*dt;
+            if (os.jump) opp.speed += 40*dt;
             opp.x = clamp(opp.x, -0.88, 0.88);
-            opp.speed = clamp(opp.speed, 2600, 8800);
+            opp.speed = clamp(opp.speed, 1800, 5200);
             opp.z += opp.speed * dt;
             if (opp.z >= race.trackLength) { opp.z -= race.trackLength; if (!opp.finished) opp.lap += 1; }
             if (opp.lap > race.lapsTarget && !opp.finished) { opp.finished = true; opp.finishTime = race.elapsed; race.finishedOrder.push(opp.name); }
