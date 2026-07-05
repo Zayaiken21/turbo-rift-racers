@@ -79,14 +79,14 @@
     #joyKnob{position:absolute;left:41px;top:41px;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 30% 25%, #fff, var(--cyan) 40%, #1f87ff);box-shadow:0 0 24px rgba(80,221,255,.66)}
     #boostBtn{position:absolute;right:max(18px,env(safe-area-inset-right));bottom:max(28px,env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;border:3px solid rgba(255,255,255,.42);background:radial-gradient(circle at 30% 22%, #fff, #ffdf76 18%, #ff58d6 55%, #794dff 100%);color:#fff;font-size:19px;font-weight:1000;letter-spacing:.08em;text-shadow:0 1px 9px rgba(0,0,0,.4);box-shadow:0 0 34px rgba(255,70,216,.52);pointer-events:auto}
     #boostBtn:active{transform:scale(.98)}
-    #pauseBtn{position:absolute;right:max(20px,env(safe-area-inset-right));bottom:max(20px,env(safe-area-inset-bottom));display:none;pointer-events:auto;width:48px;height:48px;border-radius:50%;border:1px solid var(--border);background:rgba(255,255,255,.12);color:#fff;font-size:18px}
+    #pauseBtn{position:absolute;right:max(14px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));bottom:auto;display:none;pointer-events:auto;width:48px;height:48px;border-radius:50%;border:1px solid var(--border);background:rgba(7,11,27,.82);backdrop-filter:blur(12px);color:#fff;font-size:18px;z-index:22}
     .announcer{position:fixed;left:50%;top:18%;transform:translateX(-50%);font-size:clamp(24px,5vw,56px);font-weight:1000;text-shadow:0 0 22px rgba(80,221,255,.75);pointer-events:none;text-align:center;max-width:90vw}
     .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:12px 16px;border-radius:18px;opacity:0;transition:.2s;z-index:40;pointer-events:none}
     .toast.show{opacity:1}
     .hint{position:fixed;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:10px 14px;border-radius:18px;z-index:20;display:none;max-width:min(90vw,520px);font-size:13px;line-height:1.35;text-align:center}
     .hint.show{display:block}
     .hint .closex{margin-left:10px;border:0;background:transparent;color:#fff;font-weight:900;cursor:pointer}
-    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.56);display:none;align-items:center;justify-content:center;z-index:30;padding:12px}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.56);display:none;align-items:center;justify-content:center;z-index:80;padding:12px}
     .overlay.active{display:flex}
     .small-panel{border-radius:24px;padding:18px;width:min(560px,100%)}
     #voteWheel{width:min(82vw,340px);height:min(82vw,340px);display:block;margin:0 auto 12px;background:rgba(255,255,255,.02);border-radius:50%}
@@ -783,7 +783,7 @@
       const color = player.color;
       const trailColor = player.trail;
       const y = innerHeight - 92 + bounce;
-      const x = innerWidth * 0.5 + player.x * innerWidth * 0.22;
+      const x = innerWidth * 0.5 + player.x * innerWidth * 0.28;
       for (let i=0;i<6;i++) {
         ctx.strokeStyle = trailColor; ctx.globalAlpha = 0.18 - i*0.02; ctx.lineWidth = 10 - i;
         ctx.beginPath(); ctx.moveTo(x, y + 16 + i*2); ctx.lineTo(x - player.x*40, y + 54 + i*10); ctx.stroke();
@@ -807,7 +807,8 @@
       if (distance < 0 || distance > road.drawDistance * road.segmentLength) return;
       const z = distance;
       const worldY = interpolate(seg.p1.world.y, seg.p2.world.y, percentRemaining(opp.z, road.segmentLength));
-      const temp = {world:{x:opp.x*road.width, y:worldY+80, z:z}, camera:{}, screen:{}};
+      const laneX = clamp(opp.x, -0.92, 0.92);
+      const temp = {world:{x:laneX * road.width * 0.78, y:worldY + 20, z:z}, camera:{}, screen:{}};
       project(temp, 0, road.cameraHeight, 0, road.cameraDepth, innerWidth, innerHeight, road.width);
       if (temp.screen.y >= maxY) return;
       const scale = temp.screen.scale * 1.1;
@@ -903,7 +904,7 @@
       const top = player.stats.top * 980;
       const handling = player.stats.hand * 0.95;
       const boostStrength = player.stats.boost * 200;
-      const turnInput = ((state.keys.ArrowLeft||state.keys.KeyA)?-1:0) + ((state.keys.ArrowRight||state.keys.KeyD)?1:0) + state.joy.x * save.settings.touch;
+      const turnInput = clamp((((state.keys.ArrowLeft||state.keys.KeyA)?-1:0) + ((state.keys.ArrowRight||state.keys.KeyD)?1:0) + state.joy.x * save.settings.touch), -1, 1);
       const throttle = ((state.keys.ArrowUp||state.keys.KeyW)?1:0) + Math.max(0, -state.joy.y) * save.settings.touch;
       const brake = ((state.keys.ArrowDown||state.keys.KeyS)?1:0) + Math.max(0, state.joy.y) * save.settings.touch;
       const boost = state.boostTouch || !!state.keys.Space;
@@ -919,8 +920,9 @@
         if (seg.boost) { player.speed += 900 * dt; player.boost = Math.min(100, player.boost + 10*dt); }
         if (boost && player.boost > 0) { player.speed += boostStrength * dt; player.boost -= 28 * dt; }
         else player.boost = Math.min(100, player.boost + 9 * dt);
-        player.x += turnInput * handling * (player.speed / Math.max(1500, top*1000)) * dt * 1.8 * save.settings.keys;
-        player.x = clamp(player.x, -1.55, 1.55);
+        const steerFactor = 0.42 + clamp(player.speed / Math.max(1200, top * 780), 0, 1) * 0.92;
+        player.x += turnInput * handling * steerFactor * dt * 1.9 * save.settings.keys;
+        player.x = clamp(player.x, -1.62, 1.62);
         player.speed = clamp(player.speed, 0, top * 1000 + (boost ? 500 : 0));
         if (seg.jump && player.speed > 4200 && player.air < 4) player.air = 240;
         if (player.air > 0) { player.air -= 580 * dt; if (player.air < 0) player.air = 0; }
@@ -939,7 +941,7 @@
             opp.x += clamp((-os.curve * 0.08) + Math.sin((opp.z/400)+opp.speed)*0.002, -0.02, 0.02);
             if (os.boost && opp.boost > 0.5) opp.speed += 500*dt;
             if (os.jump) opp.speed += 50*dt;
-            opp.x = clamp(opp.x, -1.2, 1.2);
+            opp.x = clamp(opp.x, -0.88, 0.88);
             opp.speed = clamp(opp.speed, 2600, 8800);
             opp.z += opp.speed * dt;
             if (opp.z >= race.trackLength) { opp.z -= race.trackLength; if (!opp.finished) opp.lap += 1; }
@@ -1219,9 +1221,9 @@
     }
     function resetJoy(){ state.joy.active = false; state.joy.x = 0; state.joy.y = 0; $('joyKnob').style.transform = 'translate(0px,0px)'; }
     function joyStart(e){ if (!state.mobile || state.scene !== 'race') return; state.joy.active = true; state.joy.id = e.pointerId; joyMove(e); }
-    function joyMove(e){ if (!state.joy.active || e.pointerId !== state.joy.id) return; const rect = $('joyBase').getBoundingClientRect(); const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2; let dx = (e.clientX - cx)/(rect.width/2); let dy = (e.clientY - cy)/(rect.height/2); const mag = Math.hypot(dx,dy); if (mag > 1) { dx/=mag; dy/=mag; } state.joy.x = clamp(dx,-1,1); state.joy.y = clamp(dy,-1,1); $('joyKnob').style.transform = `translate(${state.joy.x*34}px, ${state.joy.y*34}px)`; }
+    function joyMove(e){ if (!state.joy.active || e.pointerId !== state.joy.id) return; const rect = $('joyBase').getBoundingClientRect(); const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2; let dx = (e.clientX - cx)/(rect.width/2); let dy = (e.clientY - cy)/(rect.height/2); const mag = Math.hypot(dx,dy); if (mag > 1) { dx/=mag; dy/=mag; } if (Math.abs(dx) < 0.08) dx = 0; if (Math.abs(dy) < 0.08) dy = 0; state.joy.x = clamp(dx,-1,1); state.joy.y = clamp(dy,-1,1); $('joyKnob').style.transform = `translate(${state.joy.x*34}px, ${state.joy.y*34}px)`; }
     function joyEnd(e){ if (e.pointerId === state.joy.id) resetJoy(); }
-    function togglePause(on){ if (!state.race) return; state.race.paused = on; $('pauseOverlay').classList.toggle('active', on); }
+    function togglePause(on){ if (!state.race) return; state.race.paused = on; $('pauseOverlay').classList.toggle('active', on); $('pauseBtn').style.pointerEvents = on ? 'none' : 'auto'; if (state.mobile) $('mobileControls').style.display = on ? 'none' : 'block'; if (on) $('rotateHint').classList.remove('show'); else updateRotateHint(); if (!on) { state.boostTouch = false; resetJoy(); } }
 
     function loop(ts){
       const dt = Math.min(.05, (ts - state.last)/1000); state.last = ts;
