@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#060816" />
+  <title>Turbo Rift Racers</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="gameCanvas" aria-label="Turbo Rift Racers game canvas"></canvas>
+
+  <div id="animatedBg" aria-hidden="true"></div>
+
+  <div id="toastStack" class="toast-stack" aria-live="polite"></div>
+
+  <div id="rotateOverlay" class="rotate-overlay" aria-live="polite">
+    <div class="rotate-card">
+      <div class="phone-icon">📱↔️</div>
+      <h2>Rotate for the best race view</h2>
+      <p>Landscape gives you more track, bigger controls, and a cleaner HUD. You can still keep playing in portrait.</p>
+    </div>
+  </div>
+
+  <div id="app" class="app-shell">
+    <section class="screen active" data-screen="menu">
+      <div class="hero-grid">
+        <div class="hero-copy glass-panel big-panel">
+          <div class="eyebrow">Offline + Online Multiplayer</div>
+          <h1>Turbo Rift Racers</h1>
+          <p class="hero-subtitle">Fast, smooth, kid-friendly arcade racing with futuristic cars, five full circuits, AI racers, wrenches, upgrades, map voting, and Render-ready multiplayer.</p>
+          <label class="field-label" for="playerNameInput">Player name</label>
+          <input id="playerNameInput" class="name-input" maxlength="16" autocomplete="nickname" placeholder="Racer name" />
+          <div class="menu-actions">
+            <button class="primary-btn" data-action="playOffline">Play Offline</button>
+            <button class="primary-btn blue" data-action="openOnline">Online Multiplayer</button>
+            <button data-action="openGarage">Garage</button>
+            <button data-action="openShop">Shop</button>
+            <button data-action="openSettings">Settings</button>
+            <button data-action="openHow">How to Play</button>
+            <button data-action="toggleFullscreen">Full Screen</button>
+          </div>
+        </div>
+        <div class="feature-card glass-panel">
+          <div id="featuredCar" class="featured-car"></div>
+          <h2 id="featuredVehicleName">Rift Runner</h2>
+          <p id="dailyChallenge">Daily challenge loading...</p>
+          <div class="status-row"><span>Connection</span><strong id="connectionStatus">Offline ready</strong></div>
+          <div class="status-row"><span>Wrenches</span><strong id="menuWrenchCount">0</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="offlineSetup">
+      <div class="glass-panel setup-panel">
+        <div class="panel-head"><button class="ghost-btn" data-action="backMenu">← Back</button><h2>Quick Race</h2></div>
+        <div class="setup-grid">
+          <label>Track<select id="offlineTrackSelect"></select></label>
+          <label>Laps<select id="offlineLapSelect"><option value="1">1 Lap Quick</option><option value="3" selected>3 Laps Standard</option><option value="5">5 Laps Pro</option></select></label>
+          <label>AI Racers<select id="offlineAiSelect"><option>1</option><option>2</option><option selected>4</option><option>6</option></select></label>
+          <label>Difficulty<select id="offlineDifficultySelect"><option value="easy">Easy</option><option value="normal" selected>Normal</option><option value="hard">Hard</option></select></label>
+        </div>
+        <button class="primary-btn wide" data-action="startOfflineRace">Start Race</button>
+        <p class="mini-note">Collect glowing wrenches, pass checkpoints in order, and use boost pads to fly through shortcuts.</p>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="online">
+      <div class="glass-panel setup-panel">
+        <div class="panel-head"><button class="ghost-btn" data-action="backMenu">← Back</button><h2>Online Multiplayer</h2></div>
+        <div class="connection-card">
+          <span id="onlineStatusDot" class="dot"></span>
+          <strong id="onlineStatusText">Checking server...</strong>
+          <span id="pingText">-- ms</span>
+        </div>
+        <div class="setup-grid">
+          <button class="primary-btn" data-action="createLobby">Create Lobby</button>
+          <label>Join code<input id="joinCodeInput" maxlength="6" placeholder="A7K9Q" /></label>
+          <button class="primary-btn blue" data-action="joinLobby">Join Lobby</button>
+        </div>
+        <p class="mini-note">If the server is unavailable, the game automatically keeps offline racing working.</p>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="lobby">
+      <div class="glass-panel lobby-panel">
+        <div class="panel-head"><button class="ghost-btn" data-action="leaveLobby">← Leave</button><h2>Lobby <span id="lobbyCodeText">-----</span></h2><button class="ghost-btn" data-action="copyLobbyCode">Copy Code</button></div>
+        <div class="lobby-meta">
+          <span id="lobbyHostText">Host: --</span>
+          <span id="lobbyRaceSizeText">Racers: --</span>
+          <span id="lobbyAiText">AI: --</span>
+        </div>
+        <div id="playerList" class="player-list"></div>
+        <div class="setup-grid lobby-controls">
+          <label>Map vote<select id="mapVoteSelect"></select></label>
+          <label>Max racers<select id="lobbyMaxRacers"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option selected>7</option></select></label>
+          <label>Laps<select id="lobbyLapSelect"><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option></select></label>
+          <label class="toggle-line"><input id="lobbyAiFill" type="checkbox" checked /> Fill empty seats with AI</label>
+          <label class="toggle-line"><input id="lobbyBalanced" type="checkbox" /> Balanced stats mode</label>
+        </div>
+        <div class="button-row">
+          <button class="primary-btn" data-action="toggleReady" id="readyButton">Ready</button>
+          <button data-action="openGarageFromLobby">Garage while connected</button>
+        </div>
+        <p class="mini-note">All connected players vote ready, then the map wheel picks the final track for everyone.</p>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="mapVote">
+      <div class="glass-panel vote-panel">
+        <h2>Map Spin Wheel</h2>
+        <canvas id="wheelCanvas" width="480" height="480"></canvas>
+        <h3 id="wheelResultText">Waiting for all racers...</h3>
+        <p id="wheelSubText">The server chooses the final result so players do not desync.</p>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="garage">
+      <div class="glass-panel garage-panel">
+        <div class="panel-head"><button class="ghost-btn" data-action="garageBack">← Back</button><h2>Garage</h2><strong id="garageWrenches">0 🔧</strong></div>
+        <div class="garage-layout">
+          <div class="vehicle-preview"><canvas id="garageCanvas" width="420" height="300"></canvas><h3 id="garageVehicleName">Rift Runner</h3><p id="garageLockText">Unlocked</p></div>
+          <div>
+            <div id="vehicleGrid" class="vehicle-grid"></div>
+            <div id="statPanel" class="stat-panel"></div>
+            <div class="paint-row">
+              <button data-paint="#25f4ff">Cyan</button><button data-paint="#ff3df2">Pink</button><button data-paint="#ffcb3d">Gold</button><button data-paint="#77ff7a">Lime</button><button data-paint="#ffffff">Pearl</button>
+            </div>
+            <div class="button-row"><button class="primary-btn" data-action="equipOrBuy">Equip / Buy</button><button data-action="upgradeEngine">Upgrade Engine</button><button data-action="upgradeTires">Upgrade Tires</button><button data-action="upgradeTurbo">Upgrade Turbo</button><button data-action="upgradeSuspension">Upgrade Suspension</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="shop">
+      <div class="glass-panel setup-panel wide-panel">
+        <div class="panel-head"><button class="ghost-btn" data-action="backMenu">← Back</button><h2>Shop</h2><strong id="shopWrenches">0 🔧</strong></div>
+        <p class="mini-note">No real money, no ads, no accounts. Earn wrenches by racing, collecting track wrenches, clean driving, and best laps.</p>
+        <div id="shopGrid" class="shop-grid"></div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="settings">
+      <div class="glass-panel setup-panel wide-panel">
+        <div class="panel-head"><button class="ghost-btn" data-action="backMenu">← Back</button><h2>Settings</h2></div>
+        <div class="setup-grid">
+          <label>Sound volume<input id="soundVolume" type="range" min="0" max="1" step="0.05" /></label>
+          <label>Music volume<input id="musicVolume" type="range" min="0" max="1" step="0.05" /></label>
+          <label>Graphics<select id="graphicsQuality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></label>
+          <label>Mobile sensitivity<input id="mobileSensitivity" type="range" min="0.5" max="1.5" step="0.05" /></label>
+          <label>Desktop steering<input id="desktopSensitivity" type="range" min="0.5" max="1.5" step="0.05" /></label>
+          <label class="toggle-line"><input id="cameraShake" type="checkbox" /> Camera shake</label>
+          <label class="toggle-line"><input id="reducedMotion" type="checkbox" /> Reduced motion</label>
+          <label class="toggle-line"><input id="largeHud" type="checkbox" /> Larger HUD text</label>
+          <label class="toggle-line"><input id="highContrast" type="checkbox" /> High-contrast arrows</label>
+          <label class="toggle-line"><input id="simplifiedControls" type="checkbox" /> Simplified controls</label>
+          <label class="toggle-line"><input id="autoFullscreen" type="checkbox" /> Auto-fullscreen preference</label>
+        </div>
+        <button class="danger-btn" data-action="resetProgress">Reset Progress</button>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="how">
+      <div class="glass-panel setup-panel wide-panel">
+        <div class="panel-head"><button class="ghost-btn" data-action="backMenu">← Back</button><h2>How to Play</h2></div>
+        <div class="how-grid">
+          <div><h3>Desktop</h3><p>WASD or Arrow Keys drive. Space boosts. Escape opens pause.</p></div>
+          <div><h3>Mobile</h3><p>Drag the left joystick. Up accelerates, down brakes/reverses, left/right steer. Tap the glowing boost button.</p></div>
+          <div><h3>Race Rules</h3><p>Follow route arrows, pass checkpoints in order, finish all laps, and collect glowing wrenches.</p></div>
+          <div><h3>Garage</h3><p>Spend wrenches on vehicles, paint colors, trails, and upgrades. Progress saves locally on your device.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="results">
+      <div class="glass-panel results-panel">
+        <h2>Race Results</h2>
+        <div id="resultsList" class="results-list"></div>
+        <div id="voteCounts" class="vote-counts"></div>
+        <div class="button-row results-buttons">
+          <button class="primary-btn" data-result-action="retry">Retry</button>
+          <button class="primary-btn blue" data-result-action="next">Next Race</button>
+          <button data-result-action="garage">Garage</button>
+          <button data-result-action="lobby">Lobby</button>
+          <button data-result-action="home">Home</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="hud" class="hud hidden">
+    <div class="hud-top">
+      <div class="hud-card"><span>Lap</span><strong id="hudLap">1/3</strong></div>
+      <div class="hud-card"><span>Position</span><strong id="hudPosition">1st</strong></div>
+      <div class="hud-card"><span>Speed</span><strong id="hudSpeed">0</strong></div>
+      <div class="hud-card"><span>Wrenches</span><strong id="hudWrenches">0</strong></div>
+      <button id="pauseButton" class="hud-button">Pause</button>
+    </div>
+    <div id="announcer" class="announcer"></div>
+    <canvas id="miniMap" width="220" height="160" class="mini-map"></canvas>
+    <div id="scoreboard" class="scoreboard"></div>
+    <div id="boostBar" class="boost-bar"><span id="boostFill"></span></div>
+  </div>
+
+  <div id="pauseMenu" class="pause-menu hidden">
+    <div class="glass-panel pause-card">
+      <h2>Paused</h2>
+      <button class="primary-btn" data-action="resumeRace">Resume</button>
+      <button data-action="restartOffline">Restart Offline Race</button>
+      <button data-action="leaveRace">Leave Race</button>
+    </div>
+  </div>
+
+  <div id="mobileControls" class="mobile-controls">
+    <div id="joystick" class="joystick" aria-label="Mobile driving joystick"><div id="joystickKnob" class="joystick-knob"></div></div>
+    <button id="mobileBoost" class="mobile-boost" aria-label="Boost">BOOST</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js" defer></script>
+  <script src="game.js" defer></script>
+</body>
+</html>
