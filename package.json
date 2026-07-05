@@ -1,17 +1,16 @@
 {
   "name": "turbo-rift-racers",
-  "version": "1.0.0",
-  "description": "Turbo Rift Racers - offline and Render-hosted online multiplayer HTML racing game.",
+  "version": "2.0.0",
+  "description": "Turbo Rift Racers - 5-file Render-ready arcade racing game",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18"
   },
   "dependencies": {
     "express": "^4.19.2",
     "socket.io": "^4.7.5"
-  },
-  "license": "MIT"
+  }
 }
