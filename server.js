@@ -36,9 +36,9 @@ const LOBBY_TTL_MS = 1000 * 60 * 60 * 2;
 const EMPTY_LOBBY_TTL_MS = 1000 * 60 * 3;
 const TICK_MS = 40;
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 app.get('/health', (_req, res) => res.json({ ok: true, name: 'Turbo Rift Racers', time: Date.now() }));
-app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 const TRACK_IDS = ['neon','jungle','desert','arctic','sky'];
 const TRACK_NAMES = {
