@@ -14,7 +14,7 @@
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:radial-gradient(circle at 50% 15%, #13284a, #07111f 52%, #02050b 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;touch-action:none;user-select:none}
     body.big-hud .hud-card b{font-size:22px}
     body.big-hud .hud-card{font-size:14px}
-    button,input,select{font:inherit}
+    button,input,select{font:inherit;touch-action:manipulation}
     #game{position:fixed;inset:0;width:100vw;height:100vh;display:block;background:linear-gradient(#66b7ff 0%, #a0d2ff 38%, #0f1428 39%, #0a1022 100%)}
     #ui{position:fixed;inset:0;pointer-events:none}
     .screen{position:absolute;inset:0;display:none;pointer-events:auto;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));overflow:hidden}
@@ -83,12 +83,12 @@
     .announcer{position:fixed;left:50%;top:18%;transform:translateX(-50%);font-size:clamp(24px,5vw,56px);font-weight:1000;text-shadow:0 0 22px rgba(80,221,255,.75);pointer-events:none;text-align:center;max-width:90vw}
     .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:12px 16px;border-radius:18px;opacity:0;transition:.2s;z-index:40;pointer-events:none}
     .toast.show{opacity:1}
-    .hint{position:fixed;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:10px 14px;border-radius:18px;z-index:20;display:none;max-width:min(90vw,520px);font-size:13px;line-height:1.35;text-align:center;pointer-events:auto}
+    .hint{position:fixed;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);padding:8px 12px;border-radius:16px;z-index:20;display:none;max-width:min(74vw,360px);font-size:12px;line-height:1.25;text-align:center;pointer-events:auto}
     .hint.show{display:block}
     .hint .closex{margin-left:10px;border:0;background:transparent;color:#fff;font-weight:900;cursor:pointer;font-size:24px;line-height:1;padding:2px 6px}
     .overlay{position:fixed;inset:0;background:rgba(0,0,0,.56);display:none;align-items:center;justify-content:center;z-index:80;padding:12px;pointer-events:auto}
     .overlay.active{display:flex}
-    .small-panel{border-radius:24px;padding:18px;width:min(560px,100%)}
+    .small-panel{border-radius:24px;padding:18px;width:min(560px,100%);pointer-events:auto}
     #voteWheel{width:min(82vw,340px);height:min(82vw,340px);display:block;margin:0 auto 12px;background:rgba(255,255,255,.02);border-radius:50%}
     .tracks-pills{display:flex;gap:8px;flex-wrap:wrap}
     .pill{border-radius:999px;padding:7px 10px;background:rgba(255,255,255,.08);border:1px solid var(--border);font-size:12px}
@@ -467,7 +467,9 @@
       const show = state.scene === 'race' && state.mobile && innerHeight > innerWidth && save.settings.hints;
       $('rotateHint').classList.toggle('show', !!show);
     }
-    $('closeRotateHint').onclick = () => { save.settings.hints = false; saveNow(); updateRotateHint(); $('setHints').checked = false; };
+    function closeRotateHint(){ save.settings.hints = false; saveNow(); $('rotateHint').classList.remove('show'); if ($('setHints')) $('setHints').checked = false; }
+    $('closeRotateHint').onclick = closeRotateHint;
+    $('closeRotateHint').onpointerup = (e) => { e.preventDefault(); e.stopPropagation(); closeRotateHint(); };
 
     function resize(){
       state.mobile = matchMedia('(pointer:coarse)').matches || innerWidth < 900;
@@ -557,7 +559,7 @@
     function renderTrackFacts(id){ $('trackFacts').innerHTML = trackById(id).facts.map(f => `<span class="pill">${f}</span>`).join(''); }
 
     // ---------------- PSEUDO 3D TRACK ----------------
-    const road = { width: 2800, segmentLength: 220, drawDistance: 240, rumbleLength: 3, lanes: 3, cameraHeight: 1000, cameraDepth: 1 / Math.tan((100/2) * Math.PI / 180) };
+    const road = { width: 3400, segmentLength: 240, drawDistance: 260, rumbleLength: 3, lanes: 3, cameraHeight: 1000, cameraDepth: 1 / Math.tan((100/2) * Math.PI / 180) };
     function easeIn(a,b,p){ return a + (b-a)*Math.pow(p,2); }
     function easeOut(a,b,p){ return a + (b-a)*(1-Math.pow(1-p,2)); }
     function easeInOut(a,b,p){ return a + (b-a)*((-Math.cos(p*Math.PI)/2) + .5); }
@@ -652,7 +654,7 @@
         const others = state.lobby.players.filter(p => p.id !== state.myId && p.online);
         const packZ = [3,5,7,10,13,16];
         const packX = [-0.55,0.55,-0.18,0.18,-0.82,0.82];
-        others.forEach((p, idx) => { const op = createOpponent(p.name, p.vehicle, false); op.remoteId = p.id; op.z = packZ[idx % packZ.length] * road.segmentLength; op.x = packX[idx % packX.length]; op.speed = 2600 + idx * 120; opponents.push(op); remoteIds.push(p.id); });
+        others.forEach((p, idx) => { const op = createOpponent(p.name, p.vehicle, false); op.remoteId = p.id; op.z = packZ[idx % packZ.length] * road.segmentLength; op.x = packX[idx % packX.length]; op.speed = 1500 + idx * 80; opponents.push(op); remoteIds.push(p.id); });
       }
       const neededAI = Math.max(0, options.ai || 0);
       for (let i=0;i<neededAI;i++) {
@@ -662,7 +664,7 @@
         const packX = [-0.72,-0.32,0.32,0.72,-0.12,0.12];
         op.z = packZ[i % packZ.length] * road.segmentLength;
         op.x = packX[i % packX.length];
-        op.speed = 2300 + Math.random()*500;
+        op.speed = 1450 + Math.random()*500;
         opponents.push(op);
       }
       const race = {
@@ -778,8 +780,29 @@
       drawPolygon([[x2-w2*1.04,y2],[x2-w2*0.8,y2-60],[x2+w2*0.8,y2-60],[x2+w2*1.04,y2]], 'rgba(6,7,16,.85)');
     }
     function drawLoopArch(x, y, scale, icy=false){
-      ctx.strokeStyle = icy ? '#d8fbff' : '#8b67ff'; ctx.lineWidth = 5*scale; ctx.beginPath(); ctx.arc(x, y, 46*scale, Math.PI*0.2, Math.PI*1.8); ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.lineWidth = 2*scale; ctx.beginPath(); ctx.arc(x, y, 54*scale, Math.PI*0.2, Math.PI*1.8); ctx.stroke();
+      const r = Math.max(26, 72 * scale);
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.shadowColor = icy ? '#d8fbff' : '#8b67ff';
+      ctx.shadowBlur = 18 * scale;
+      ctx.strokeStyle = icy ? '#d8fbff' : '#8b67ff';
+      ctx.lineWidth = Math.max(5, 10 * scale);
+      ctx.beginPath(); ctx.arc(x, y - r * .2, r, Math.PI*.08, Math.PI*1.92); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255,255,255,.68)'; ctx.lineWidth = Math.max(2, 3 * scale);
+      ctx.beginPath(); ctx.arc(x, y - r * .2, r * 1.16, Math.PI*.12, Math.PI*1.88); ctx.stroke();
+      ctx.fillStyle = 'rgba(10,14,32,.75)';
+      ctx.beginPath(); ctx.ellipse(x, y + r*.68, r*.72, r*.12, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+    function drawRampMarker(x, y, scale){
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.scale(scale,scale);
+      ctx.fillStyle='rgba(255,203,77,.9)';
+      ctx.beginPath(); ctx.moveTo(-44,24); ctx.lineTo(0,-26); ctx.lineTo(44,24); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='rgba(10,14,32,.55)'; ctx.fillRect(-34,12,68,8);
+      ctx.restore();
     }
     function drawWrench(x,y,scale){
       ctx.save(); ctx.translate(x,y); ctx.scale(scale,scale); ctx.rotate(Math.sin(performance.now()/240)*0.3); ctx.strokeStyle='#ffe475'; ctx.lineWidth=5; ctx.shadowColor='#ffe475'; ctx.shadowBlur=16; ctx.beginPath(); ctx.moveTo(-12,10); ctx.lineTo(0,-10); ctx.lineTo(10,-2); ctx.lineTo(4,4); ctx.lineTo(12,12); ctx.stroke(); ctx.restore();
@@ -811,25 +834,31 @@
         ctx.beginPath(); ctx.moveTo(x+18,y+42); ctx.lineTo(x+28,y+62); ctx.lineTo(x+8,y+56); ctx.fill();
       }
     }
-    function drawOpponentCar(opp, seg, baseSegment, maxY){
-      const distance = ((opp.z - state.race.player.z) + state.race.trackLength) % state.race.trackLength;
-      if (distance < 0 || distance > road.drawDistance * road.segmentLength) return;
-      const z = distance;
-      const worldY = interpolate(seg.p1.world.y, seg.p2.world.y, percentRemaining(opp.z, road.segmentLength));
-      const laneX = clamp(opp.x, -0.92, 0.92);
-      const temp = {world:{x:laneX * road.width * 0.78, y:worldY + 20, z:z}, camera:{}, screen:{}};
-      project(temp, 0, road.cameraHeight, 0, road.cameraDepth, innerWidth, innerHeight, road.width);
-      if (temp.screen.y >= maxY) return;
-      const scale = temp.screen.scale * 1.1;
-      const x = temp.screen.x;
-      const y = temp.screen.y;
-      const w = 70 * scale * innerWidth/2;
-      const h = 120 * scale * innerWidth/2;
-      ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(x, y+10, w*.55, h*.08, 0, 0, Math.PI*2); ctx.fill();
-      drawPolygon([[x,y-h*.55],[x+w*.5,y-h*.12],[x+w*.42,y+h*.35],[x-w*.42,y+h*.35],[x-w*.5,y-h*.12]], opp.color);
-      drawPolygon([[x,y-h*.28],[x+w*.2,y-h*.08],[x+w*.16,y+h*.16],[x-w*.16,y+h*.16],[x-w*.2,y-h*.08]], '#1b3f58');
-      ctx.fillStyle = '#0a1018'; ctx.fillRect(x-w*.48,y-h*.08,w*.14,h*.26); ctx.fillRect(x+w*.34,y-h*.08,w*.14,h*.26);
-      ctx.fillStyle = '#ff6b83'; ctx.fillRect(x-w*.18,y+h*.2,w*.1,h*.06); ctx.fillRect(x+w*.08,y+h*.2,w*.1,h*.06);
+    function drawOpponentCar(opp){
+      const race = state.race;
+      const distance = ((opp.z - race.player.z) + race.trackLength) % race.trackLength;
+      if (distance < 120 || distance > road.drawDistance * road.segmentLength) return;
+      const segIndex = Math.floor(opp.z / road.segmentLength) % race.segments.length;
+      const seg = race.segments[segIndex];
+      if (!seg || !seg.p1.screen || !seg.p2.screen || seg.p1.camera.z <= road.cameraDepth) return;
+      const p = percentRemaining(opp.z, road.segmentLength);
+      const roadY = interpolate(seg.p1.screen.y, seg.p2.screen.y, p);
+      if (roadY < innerHeight * .38 || roadY > innerHeight + 120) return;
+      const roadX = interpolate(seg.p1.screen.x, seg.p2.screen.x, p);
+      const roadW = interpolate(seg.p1.screen.w, seg.p2.screen.w, p);
+      const laneX = clamp(opp.x, -0.82, 0.82);
+      const x = roadX + laneX * roadW * .74;
+      const perspective = clamp(roadW / 900, .12, .92);
+      const w = 74 * perspective;
+      const h = 112 * perspective;
+      const y = roadY - h * .15;
+      ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(x, roadY + 8 * perspective, w*.68, h*.12, 0, 0, Math.PI*2); ctx.fill();
+      drawPolygon([[x,y-h*.58],[x+w*.52,y-h*.12],[x+w*.43,y+h*.38],[x-w*.43,y+h*.38],[x-w*.52,y-h*.12]], opp.color);
+      drawPolygon([[x,y-h*.3],[x+w*.22,y-h*.06],[x+w*.17,y+h*.16],[x-w*.17,y+h*.16],[x-w*.22,y-h*.06]], '#18384d');
+      ctx.fillStyle = '#081018';
+      ctx.fillRect(x-w*.52,y-h*.06,w*.13,h*.28); ctx.fillRect(x+w*.39,y-h*.06,w*.13,h*.28);
+      ctx.fillStyle = '#ff6b83'; ctx.fillRect(x-w*.18,y+h*.24,w*.1,h*.06); ctx.fillRect(x+w*.08,y+h*.24,w*.1,h*.06);
+      ctx.fillStyle = '#fff'; ctx.font = Math.max(8, 12*perspective)+'px sans-serif'; ctx.textAlign='center'; ctx.fillText(opp.name, x, y-h*.72);
     }
 
     function renderRace(){
@@ -868,8 +897,9 @@
         }
         ctx.globalAlpha = 1;
         if (seg.boost) drawBoostPad(seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w, seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w);
-        if (seg.tunnel && n < 80) drawTunnel(seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w, seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w);
-        if (seg.loop && n < 45) drawLoopArch(seg.p2.screen.x, seg.p2.screen.y - 20, clamp(seg.p2.screen.scale * innerWidth * 0.006, .35, 1), race.track.id === 'arctic');
+        if (seg.jump && n < 80) drawRampMarker(seg.p2.screen.x, seg.p2.screen.y - 8, clamp(seg.p2.screen.scale * innerWidth * 0.012, .28, 1.2));
+        if (seg.tunnel && n < 90) drawTunnel(seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w, seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w);
+        if (seg.loop && n < 70) drawLoopArch(seg.p2.screen.x, seg.p2.screen.y - 10, clamp(seg.p2.screen.scale * innerWidth * 0.011, .45, 2.35), race.track.id === 'arctic');
         if (seg.index === 0) {
           drawQuad(seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w, seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w, '#f3f3f3');
           drawQuad(seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w*0.08, seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w*0.08, '#111');
@@ -886,10 +916,7 @@
         }
         maxY = seg.p2.screen.y;
       }
-      race.opponents.forEach(opp => {
-        const seg = race.segments[Math.floor(opp.z / road.segmentLength) % race.segments.length];
-        drawOpponentCar(opp, seg, baseSegment, maxY);
-      });
+      race.opponents.forEach(opp => drawOpponentCar(opp));
       drawCarBottom(player, Math.sin(performance.now()/140) * Math.min(4, player.speed/2000));
       drawMiniMap();
     }
@@ -935,8 +962,13 @@
         player.x += turnInput * handling * steerFactor * dt * 1.9 * save.settings.keys;
         player.x = clamp(player.x, -1.62, 1.62);
         player.speed = clamp(player.speed, 0, top + (boost ? 380 : 0));
-        if (seg.jump && player.speed > 2600 && player.air < 4) player.air = 240;
-        if (player.air > 0) { player.air -= 580 * dt; if (player.air < 0) player.air = 0; }
+        if (seg.jump && player.speed > 2300 && player.air < 4) player.air = 260;
+        if (seg.loop) {
+          const lp = percentRemaining(player.z, road.segmentLength);
+          player.air = Math.max(player.air, Math.sin(lp * Math.PI) * 340);
+          player.speed += 90 * dt;
+        }
+        if (player.air > 0) { player.air -= 620 * dt; if (player.air < 0) player.air = 0; }
         // Wrench pickup and collisions
         const segIndex = Math.floor(player.z / road.segmentLength) % race.segments.length;
         const curSeg = race.segments[segIndex];
@@ -953,7 +985,7 @@
             if (os.boost && opp.boost > 0.5) opp.speed += 360*dt;
             if (os.jump) opp.speed += 40*dt;
             opp.x = clamp(opp.x, -0.88, 0.88);
-            opp.speed = clamp(opp.speed, 1800, 5200);
+            opp.speed = clamp(opp.speed, 1500, 4300);
             opp.z += opp.speed * dt;
             if (opp.z >= race.trackLength) { opp.z -= race.trackLength; if (!opp.finished) opp.lap += 1; }
             if (opp.lap > race.lapsTarget && !opp.finished) { opp.finished = true; opp.finishTime = race.elapsed; race.finishedOrder.push(opp.name); }
@@ -1180,11 +1212,16 @@
       ['onlineMax','onlineLaps','onlineFillAI','onlineBalanced'].forEach(id => $(id).onchange = () => state.socket?.emit('lobby:settings', {maxRacers:+$('onlineMax').value, laps:+$('onlineLaps').value, aiFill:$('onlineFillAI').checked, balanced:$('onlineBalanced').checked}));
       $('onlineHomeBtn').onclick = () => { if (state.socket && state.lobby) state.socket.emit('lobby:leave'); state.lobby = null; $('lobbyPanel').style.display = 'none'; showScreen('menu'); };
 
-      $('resumeBtn').onclick = () => togglePause(false);
-      $('pauseBtn').onclick = () => togglePause(true);
-      $('restartBtn').onclick = () => { if (state.race?.online) { togglePause(false); showScreen('online'); } else { startRace({track:state.race.track.id, laps:state.race.lapsTarget, ai:state.race.aiCount, diff:state.race.diff, online:false}); } };
-      $('pauseGarageBtn').onclick = () => { togglePause(false); renderGarage(); showScreen('garage'); };
-      $('quitRaceBtn').onclick = () => { togglePause(false); showScreen('menu'); };
+      const resumeGame = () => togglePause(false);
+      const pauseGame = () => togglePause(true);
+      const restartRace = () => { if (state.race?.online) { togglePause(false); showScreen('online'); } else { startRace({track:state.race.track.id, laps:state.race.lapsTarget, ai:state.race.aiCount, diff:state.race.diff, online:false}); } };
+      const pauseGarage = () => { togglePause(false); renderGarage(); showScreen('garage'); };
+      const quitRace = () => { togglePause(false); showScreen('menu'); };
+      $('resumeBtn').onclick = resumeGame; $('resumeBtn').onpointerup = (e)=>{e.preventDefault();resumeGame();};
+      $('pauseBtn').onclick = pauseGame; $('pauseBtn').onpointerup = (e)=>{e.preventDefault();pauseGame();};
+      $('restartBtn').onclick = restartRace; $('restartBtn').onpointerup = (e)=>{e.preventDefault();restartRace();};
+      $('pauseGarageBtn').onclick = pauseGarage; $('pauseGarageBtn').onpointerup = (e)=>{e.preventDefault();pauseGarage();};
+      $('quitRaceBtn').onclick = quitRace; $('quitRaceBtn').onpointerup = (e)=>{e.preventDefault();quitRace();};
       $('retryBtn').onclick = () => { if (state.race?.online) state.socket?.emit('results:vote','retry'); else startRace({track:state.race.track.id, laps:state.race.lapsTarget, ai:state.race.aiCount, diff:state.race.diff, online:false}); };
       $('nextBtn').onclick = () => { if (state.race?.online) state.socket?.emit('results:vote','next'); else { const ids = Object.keys(TRACKS); const next = ids[(ids.indexOf(state.race.track.id)+1)%ids.length]; startRace({track:next, laps:state.race.lapsTarget, ai:state.race.aiCount, diff:state.race.diff, online:false}); } };
       $('garageBtn').onclick = () => { if (state.race?.online) state.socket?.emit('results:vote','garage'); else { renderGarage(); showScreen('garage'); } };
