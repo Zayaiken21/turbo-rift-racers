@@ -1,16 +1,1 @@
-{
-  "name": "turbo-rift-racers",
-  "version": "2.0.0",
-  "description": "Turbo Rift Racers - 5-file Render-ready arcade racing game",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "dependencies": {
-    "express": "^4.19.2",
-    "socket.io": "^4.7.5"
-  }
-}
+{"name":"turbo-rift-racers-ultimate-5","version":"3.0.0","description":"Turbo Rift Racers - 5-file Render-ready HTML arcade racing game","main":"server.js","scripts":{"start":"node server.js"},"engines":{"node":">=18"},"dependencies":{"express":"^4.19.2","socket.io":"^4.7.5"}}

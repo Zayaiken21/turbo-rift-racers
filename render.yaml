@@ -2,7 +2,6 @@ services:
   - type: web
     name: turbo-rift-racers
     env: node
-    plan: free
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /health

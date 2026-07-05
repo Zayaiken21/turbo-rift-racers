@@ -1,54 +1,86 @@
+const path = require('path');
 const express = require('express');
 const http = require('http');
-const path = require('path');
 const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: true } });
+const io = new Server(server, { maxHttpBufferSize: 4096, pingTimeout: 15000, pingInterval: 8000 });
 const PORT = process.env.PORT || 3000;
+const PUBLIC_DIR = __dirname; // 5-file build: index.html is served directly from project root
 
-app.use(express.static(__dirname, { extensions: ['html'] }));
+app.use(express.static(PUBLIC_DIR, { extensions: ['html'], index: 'index.html' }));
 app.get('/health', (_req, res) => res.json({ ok: true, game: 'Turbo Rift Racers' }));
-app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('*', (_req, res) => res.sendFile(path.join(PUBLIC_DIR, 'index.html')));
 
-const MAX_LOBBIES = 200;
-const lobbies = new Map();
-const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const maps = ['neon','jungle','desert','arctic','sky'];
-const vehicles = ['rift','fang','beetle','vanquish','jetback','mammoth','solar','phantom','panther','wagon','hornet','crusher'];
-function code(){ let c=''; do{ c=''; for(let i=0;i<5;i++) c+=alphabet[Math.floor(Math.random()*alphabet.length)]; }while(lobbies.has(c)); return c; }
-function cleanName(n){ return String(n||'Racer').replace(/[^a-zA-Z0-9 _-]/g,'').trim().slice(0,14)||('Racer'+Math.floor(Math.random()*900+100)); }
-function cleanVehicle(v){ return vehicles.includes(v) ? v : 'rift'; }
-function packLobby(l){ return { code:l.code, hostId:l.hostId, maxRacers:l.maxRacers, aiFill:l.aiFill, phase:l.phase, track:l.track, players:[...l.players.values()].map(p=>({id:p.id,name:p.name,vehicle:p.vehicle,ready:p.ready,mapVote:p.mapVote||'neon'})), votes:l.votes||{}, spin:l.spin||null }; }
-function broadcastLobby(l){ io.to(l.code).emit('lobbyState', packLobby(l)); }
-function prune(){ const now=Date.now(); for(const [c,l] of lobbies){ if(l.players.size===0 || now-l.touched>1000*60*45) lobbies.delete(c); } }
-setInterval(prune, 30000);
-
-io.on('connection', socket => {
-  socket.data.lobbyCode = null;
-  socket.on('createLobby', data => {
-    if(lobbies.size >= MAX_LOBBIES) return socket.emit('toast','Server is busy. Try again soon.');
-    const l = { code: code(), hostId: socket.id, maxRacers: Math.min(7, Math.max(2, Number(data?.maxRacers)||7)), aiFill: data?.aiFill !== false, phase:'lobby', track:'neon', players:new Map(), states:new Map(), votes:{}, touched:Date.now() };
-    const p = { id:socket.id, name:cleanName(data?.name), vehicle:cleanVehicle(data?.vehicle), ready:false, mapVote:'neon', lastSeen:Date.now() };
-    l.players.set(socket.id,p); lobbies.set(l.code,l); socket.join(l.code); socket.data.lobbyCode=l.code; socket.emit('joinedLobby', { code:l.code, id:socket.id }); broadcastLobby(l);
-  });
-  socket.on('joinLobby', data => {
-    const c = String(data?.code||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6); const l = lobbies.get(c);
-    if(!l) return socket.emit('toast','Lobby not found.');
-    if(l.players.size >= l.maxRacers) return socket.emit('toast','Lobby is full.');
-    const used = new Set([...l.players.values()].map(p=>p.name.toLowerCase())); let name=cleanName(data?.name), base=name, i=2; while(used.has(name.toLowerCase())) name=(base+i++).slice(0,14);
-    l.players.set(socket.id,{ id:socket.id, name, vehicle:cleanVehicle(data?.vehicle), ready:false, mapVote:'neon', lastSeen:Date.now() });
-    l.touched=Date.now(); socket.join(c); socket.data.lobbyCode=c; socket.emit('joinedLobby', { code:c, id:socket.id }); broadcastLobby(l);
-  });
-  socket.on('leaveLobby', ()=>{ const l=lobbies.get(socket.data.lobbyCode); if(!l) return; l.players.delete(socket.id); socket.leave(l.code); if(l.hostId===socket.id) l.hostId=l.players.keys().next().value || null; if(!l.hostId) lobbies.delete(l.code); else broadcastLobby(l); socket.data.lobbyCode=null; });
-  socket.on('lobbySettings', data=>{ const l=lobbies.get(socket.data.lobbyCode); if(!l || l.hostId!==socket.id) return; l.maxRacers=Math.min(7,Math.max(2,Number(data?.maxRacers)||l.maxRacers)); l.aiFill=!!data?.aiFill; l.touched=Date.now(); broadcastLobby(l); });
-  socket.on('playerUpdate', data=>{ const l=lobbies.get(socket.data.lobbyCode); if(!l) return; const p=l.players.get(socket.id); if(!p) return; if('ready' in data) p.ready=!!data.ready; if(data.vehicle) p.vehicle=cleanVehicle(data.vehicle); if(data.mapVote && maps.includes(data.mapVote)) p.mapVote=data.mapVote; p.lastSeen=Date.now(); l.touched=Date.now(); broadcastLobby(l); tryStartVote(l); });
-  function tryStartVote(l){ if(l.phase!=='lobby') return; const humans=[...l.players.values()]; const canRace = humans.length>=2 || (humans.length>=1 && l.aiFill); if(!canRace) return; if(!humans.every(p=>p.ready)) return; l.phase='mapVote'; const choices=humans.map(p=>p.mapVote||'neon'); while(l.aiFill && choices.length<l.maxRacers) choices.push(maps[Math.floor(Math.random()*maps.length)]); const picked=choices[Math.floor(Math.random()*choices.length)] || 'neon'; l.track=picked; l.spin={ choices, picked, seed: Math.floor(Math.random()*999999), startedAt:Date.now()+500 }; broadcastLobby(l); setTimeout(()=>{ if(lobbies.get(l.code)===l){ l.phase='race'; l.startedAt=Date.now()+3600; l.states.clear(); io.to(l.code).emit('raceStart', { track:l.track, startAt:l.startedAt, racers:[...l.players.values()].map(p=>({id:p.id,name:p.name,vehicle:p.vehicle})), maxRacers:l.maxRacers, aiFill:l.aiFill }); broadcastLobby(l); } }, 4700); }
-  socket.on('raceState', data=>{ const l=lobbies.get(socket.data.lobbyCode); if(!l || l.phase!=='race') return; const p=l.players.get(socket.id); if(!p) return; l.states.set(socket.id,{ id:socket.id,x:+data.x||0,y:+data.y||0,a:+data.a||0,s:+data.s||0,lap:+data.lap||1,cp:+data.cp||0,boost:!!data.boost,finished:!!data.finished,t:Date.now() }); });
-  socket.on('raceFinish', data=>{ const l=lobbies.get(socket.data.lobbyCode); if(!l) return; io.to(l.code).emit('playerFinished',{ id:socket.id, time:+data?.time||0 }); });
-  socket.on('resultVote', data=>{ const l=lobbies.get(socket.data.lobbyCode); if(!l) return; const v=['retry','next','garage','lobby'].includes(data?.vote)?data.vote:'lobby'; l.votes[socket.id]=v; const counts={}; Object.values(l.votes).forEach(x=>counts[x]=(counts[x]||0)+1); io.to(l.code).emit('resultVotes',counts); const need=Math.floor(l.players.size/2)+1; const winner=Object.keys(counts).find(k=>counts[k]>=need); if(winner){ l.votes={}; if(winner==='garage'){ l.phase='lobby'; [...l.players.values()].forEach(p=>p.ready=false); broadcastLobby(l); io.to(l.code).emit('goGarageKeepLobby'); } else if(winner==='lobby'){ l.phase='lobby'; [...l.players.values()].forEach(p=>p.ready=false); broadcastLobby(l); } else { l.phase='race'; if(winner==='next') l.track=maps[(maps.indexOf(l.track)+1)%maps.length]; l.startedAt=Date.now()+3200; io.to(l.code).emit('raceStart',{ track:l.track, startAt:l.startedAt, racers:[...l.players.values()].map(p=>({id:p.id,name:p.name,vehicle:p.vehicle})), maxRacers:l.maxRacers, aiFill:l.aiFill }); broadcastLobby(l); } } });
-  socket.on('disconnect', ()=>{ const l=lobbies.get(socket.data.lobbyCode); if(!l) return; const p=l.players.get(socket.id); if(p) p.disconnectedAt=Date.now(); setTimeout(()=>{ const cur=lobbies.get(l.code); if(!cur || cur.players.has(socket.id)===false) return; cur.players.delete(socket.id); if(cur.hostId===socket.id) cur.hostId=cur.players.keys().next().value||null; if(!cur.hostId) lobbies.delete(cur.code); else broadcastLobby(cur); }, 12000); });
+const LOBBIES = new Map();
+const TRACK_IDS = ['neon','jungle','desert','arctic','sky'];
+const VEHICLE_IDS = ['rift','fang','beetle','vanquish','jetback','mammoth','solar','phantom','panther','wagon','hornet','crusher'];
+const clean = (v, n = 18) => String(v || '').replace(/[^a-zA-Z0-9 _-]/g, '').slice(0, n).trim();
+const code = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < 5; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+};
+const pubLobby = (lobby) => ({
+  code: lobby.code,
+  hostId: lobby.hostId,
+  settings: lobby.settings,
+  race: lobby.race,
+  votes: lobby.votes,
+  players: [...lobby.players.values()].map(p => ({ id: p.id, name: p.name, ready: p.ready, vehicle: p.vehicle, map: p.map, online: p.online }))
 });
-setInterval(()=>{ for(const l of lobbies.values()){ if(l.phase==='race'){ const states=[...l.states.values()]; if(states.length) io.to(l.code).volatile.emit('raceStates',states); } } }, 50);
-server.listen(PORT, '0.0.0.0', () => console.log(`Turbo Rift Racers running on ${PORT}`));
+function broadcast(lobby){ io.to(lobby.code).emit('lobby:update', pubLobby(lobby)); }
+function makeLobby(socket, payload){
+  let c = code(); while (LOBBIES.has(c)) c = code();
+  const name = clean(payload.name) || `Racer${Math.floor(Math.random()*900+100)}`;
+  const vehicle = VEHICLE_IDS.includes(payload.vehicle) ? payload.vehicle : 'rift';
+  const lobby = { code:c, hostId:socket.id, created:Date.now(), lastActive:Date.now(), players:new Map(), settings:{maxRacers:7, aiFill:true, laps:3, balanced:false}, votes:{}, race:null };
+  lobby.players.set(socket.id,{id:socket.id,name,vehicle,map:'neon',ready:false,online:true,lastSeen:Date.now(),state:null});
+  LOBBIES.set(c,lobby); socket.join(c); socket.data.lobbyCode = c;
+  socket.emit('lobby:created', pubLobby(lobby)); broadcast(lobby);
+}
+function joinLobby(socket, payload){
+  const c = clean(payload.code, 6).toUpperCase(); const lobby = LOBBIES.get(c);
+  if (!lobby) return socket.emit('lobby:error', 'Lobby not found.');
+  if (lobby.players.size >= 7) return socket.emit('lobby:error', 'Lobby is full.');
+  const base = clean(payload.name) || `Racer${Math.floor(Math.random()*900+100)}`;
+  const names = [...lobby.players.values()].map(p=>p.name.toLowerCase());
+  let name = base, k = 2; while(names.includes(name.toLowerCase())) name = `${base}${k++}`;
+  const vehicle = VEHICLE_IDS.includes(payload.vehicle) ? payload.vehicle : 'rift';
+  lobby.players.set(socket.id,{id:socket.id,name,vehicle,map:'neon',ready:false,online:true,lastSeen:Date.now(),state:null});
+  socket.join(c); socket.data.lobbyCode = c; lobby.lastActive = Date.now();
+  socket.emit('lobby:joined', pubLobby(lobby)); broadcast(lobby);
+}
+function lobbyFor(socket){ const c = socket.data.lobbyCode; return c ? LOBBIES.get(c) : null; }
+function startRace(lobby){
+  const humans = [...lobby.players.values()].filter(p=>p.online).length;
+  const target = Math.max(2, Math.min(7, lobby.settings.maxRacers));
+  if (humans < 2 && !lobby.settings.aiFill) { io.to(lobby.code).emit('lobby:error','Need another player or AI fill.'); return; }
+  const readyPlayers = [...lobby.players.values()].filter(p=>p.online);
+  if (readyPlayers.some(p=>!p.ready)) { io.to(lobby.code).emit('lobby:error','Everyone must ready up first.'); return; }
+  const picks = readyPlayers.map(p=>TRACK_IDS.includes(p.map)?p.map:'neon');
+  while (picks.length < target) picks.push(TRACK_IDS[Math.floor(Math.random()*TRACK_IDS.length)]);
+  const chosen = picks[Math.floor(Math.random()*picks.length)];
+  const seed = Math.floor(Math.random()*999999);
+  lobby.race = { id:`race_${Date.now()}`, track:chosen, seed, laps:lobby.settings.laps || 3, startAt:Date.now()+3600, started:false, finished:false };
+  lobby.votes = {};
+  for (const p of lobby.players.values()) { p.ready = false; p.state = null; }
+  io.to(lobby.code).emit('race:spin', { picks, chosen, seed, startAt:lobby.race.startAt });
+  broadcast(lobby);
+}
+io.on('connection', socket => {
+  socket.on('lobby:create', p => makeLobby(socket, p || {}));
+  socket.on('lobby:join', p => joinLobby(socket, p || {}));
+  socket.on('lobby:leave', () => { const lobby = lobbyFor(socket); if(!lobby)return; lobby.players.delete(socket.id); socket.leave(lobby.code); if(lobby.hostId===socket.id){ const n=[...lobby.players.keys()][0]; lobby.hostId=n||null; } if(lobby.players.size===0) LOBBIES.delete(lobby.code); else broadcast(lobby); socket.data.lobbyCode=null; });
+  socket.on('player:update', p => { const l=lobbyFor(socket); if(!l||!l.players.has(socket.id))return; const pl=l.players.get(socket.id); if(p.vehicle && VEHICLE_IDS.includes(p.vehicle)) pl.vehicle=p.vehicle; if(p.map && TRACK_IDS.includes(p.map)) pl.map=p.map; if(typeof p.ready==='boolean') pl.ready=p.ready; l.lastActive=Date.now(); broadcast(l); });
+  socket.on('lobby:settings', p => { const l=lobbyFor(socket); if(!l||l.hostId!==socket.id)return; l.settings.maxRacers=Math.max(2,Math.min(7,Number(p.maxRacers)||7)); l.settings.laps=[1,3,5].includes(Number(p.laps))?Number(p.laps):3; l.settings.aiFill=!!p.aiFill; l.settings.balanced=!!p.balanced; broadcast(l); });
+  socket.on('race:start', () => { const l=lobbyFor(socket); if(!l||l.hostId!==socket.id)return; if(l.race && Date.now()<l.race.startAt+5000)return; startRace(l); });
+  socket.on('race:state', state => { const l=lobbyFor(socket); if(!l||!l.race||!l.players.has(socket.id))return; const p=l.players.get(socket.id); p.state={x:+state.x||0,y:+state.y||0,a:+state.a||0,s:+state.s||0,lap:+state.lap||0,cp:+state.cp||0,boost:!!state.boost,t:Date.now()}; socket.to(l.code).emit('race:remote', {id:socket.id, state:p.state}); });
+  socket.on('race:event', ev => { const l=lobbyFor(socket); if(!l||!l.race)return; const type=clean(ev.type,24); if(['wrench','lap','finish','boost'].includes(type)) socket.to(l.code).emit('race:event', {id:socket.id,type,data:ev.data||{}}); });
+  socket.on('results:vote', action => { const l=lobbyFor(socket); if(!l)return; const a=clean(action,16); if(!['retry','next','garage','lobby','home'].includes(a))return; l.votes[socket.id]=a; const counts={}; for(const v of Object.values(l.votes)) counts[v]=(counts[v]||0)+1; io.to(l.code).emit('results:votes', counts); const human=[...l.players.values()].filter(p=>p.online).length; if((counts[a]||0)>=Math.ceil(human/2)){ if(a==='retry'&&l.race){ l.race.startAt=Date.now()+2800; io.to(l.code).emit('race:restart',{track:l.race.track,seed:l.race.seed,laps:l.race.laps,startAt:l.race.startAt}); } if(a==='next'){ for(const p of l.players.values()) p.ready=true; startRace(l); } if(a==='garage') io.to(l.code).emit('scene:garage'); if(a==='lobby') io.to(l.code).emit('scene:lobby'); l.votes={}; broadcast(l); } });
+  socket.on('disconnect', () => { const l=lobbyFor(socket); if(!l)return; const p=l.players.get(socket.id); if(p){ p.online=false; p.lastSeen=Date.now(); } if(l.hostId===socket.id){ const n=[...l.players.values()].find(x=>x.online); l.hostId=n?n.id:l.hostId; } broadcast(l); });
+});
+setInterval(()=>{ const now=Date.now(); for(const [c,l] of LOBBIES){ for(const [id,p] of l.players){ if(!p.online && now-p.lastSeen>30000) l.players.delete(id); } if(l.players.size===0 || now-l.lastActive>1000*60*60*3) LOBBIES.delete(c); else broadcast(l); } },15000);
+server.listen(PORT, '0.0.0.0', () => console.log(`Turbo Rift Racers listening on ${PORT}`));
